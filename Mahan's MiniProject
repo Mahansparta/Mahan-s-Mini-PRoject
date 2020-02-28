@@ -1,0 +1,167 @@
+-- Mahan's Project Code
+
+-- Exercise 1
+
+--1.1)
+SELECT * FROM Customers
+
+SELECT CustomerID, CompanyName, Address FROM Customers
+WHERE City = 'Paris' OR City = 'London'
+
+SELECT CustomerID, CompanyName, Address FROM Customers
+WHERE City IN ('Paris','London')
+
+-- 1.2)
+SELECT * FROM Products
+
+SELECT ProductName FROM Products
+WHERE QuantityPerUnit LIKE '%bottles%'
+
+-- 1.3)
+SELECT * FROM Products
+SELECT * FROM Suppliers
+
+SELECT p.ProductName, s.CompanyName, s.Country FROM Products AS p
+INNER JOIN Suppliers AS s
+ON s.SupplierID = p.SupplierID
+WHERE QuantityPerUnit LIKE '%bottles%'
+
+SELECT * FROM Products AS p
+INNER JOIN
+(SELECT s.CompanyName, s.Country FROM Suppliers AS s
+WHERE p.QuantityPerUnit LIKE '%bottles%') AS f
+ON p.SupplierID = f.SupplierID
+
+-- 1.4)
+SELECT * FROM Products
+SELECT * FROM Categories
+
+SELECT c.CategoryName, p.CategoryID, COUNT(p.CategoryID) AS 'Sum' FROM Products AS p
+INNER JOIN Categories AS c
+ON c.CategoryID = p.CategoryID
+GROUP BY c.CategoryName, p.CategoryID
+ORDER BY [Sum] DESC
+
+
+--1.5)
+SELECT * FROM Employees
+WHERE Country = 'UK'
+
+SELECT (e.TitleOfCourtesy + e.FirstName + '' + e.LastName) AS 'Full Name', City FROM Employees AS e
+WHERE Country = 'UK'
+
+--1.6)
+SELECT * FROM [Order Details]
+SELECT * FROM Orders
+SELECT * FROM Territories
+SELECT * FROM Region
+SELECT * FROM EmployeeTerritories
+
+SELECT r.RegionDescription, ROUND(SUM(od.Quantity * od.UnitPrice*(1-od.Discount)), 2) AS 'Total Sales for Region' FROM [Order Details] AS od
+INNER JOIN Orders AS o ON od.OrderID = o.OrderID
+INNER JOIN EmployeeTerritories AS et ON et.EmployeeID = o.EmployeeID
+INNER JOIN  Territories  AS t ON t.TerritoryID = et.TerritoryID
+INNER JOIN Region AS r ON r.RegionID = t.RegionID
+GROUP BY RegionDescription
+HAVING ROUND(SUM(od.Quantity * od.UnitPrice*(1-od.Discount)), 2) > 1000000
+
+--1.7)
+SELECT * FROM Orders
+
+SELECT COUNT(Freight) AS 'Amount of Freight over 100'FROM Orders
+WHERE Freight > 100 AND (ShipCountry = 'UK' OR ShipCountry = 'USA')
+
+--1.8)
+SELECT * FROM Orders
+SELECT * FROM [Order Details]
+
+SELECT OrderID, (UnitPrice * Quantity * Discount) AS 'Amount Discount' FROM [Order Details]
+WHERE (UnitPrice * Quantity * Discount) = (SELECT MAX(UnitPrice * Quantity * Discount) FROM [Order Details])
+
+
+--Exercise 2
+-- 2.1)
+
+
+CREATE TABLE SpartansTable(
+SpartansID INT IDENTITY(1,1),
+SeperateTitle VARCHAR(5),
+FirstName VARCHAR(10),
+LastName VARCHAR(20),
+Living VARCHAR(15) DEFAULT 'London',
+Age int,
+CHECK(Age>=18),
+University VARCHAR(20),
+CourseTaken VARCHAR(20),
+MarkAchieved VARCHAR(4),
+PRIMARY KEY (SpartansID)
+);
+
+
+--2.2)
+INSERT INTO SpartansTable(
+SeperateTitle, FirstName, LastName, Living, Age, University, CourseTaken, MarkAchieved
+)
+VALUES
+('Mr','Mahan', 'Mohkamkar - Jahromi', 'London', 23, 'UOP', 'Maths', '2:1'),
+('Mr','Ayman', 'Yousefi', 'London', 24, 'UWL', 'Computer Science', '2:1'),
+('Mr','Zack', 'Davenport', 'London', 24, 'UEA', 'Film and TV', '2:2'),
+('Mr','Abdullah', 'Ayyaz', 'London', 25, 'UOW', 'Business Economics', '2:1'),
+('Miss','Sara', 'Abdrabu', 'London', 26, 'UOW', 'Computer Networks', '2:1');
+
+
+SELECT * FROM SpartansTable
+ORDER BY lastname, firstname
+
+DROP TABLE SpartansTable;
+
+--Exercise 3
+
+--3.1)
+
+SELECT * FROM Employees
+
+SELECT FirstName, LastName, ReportsTo FROM Employees
+ORDER BY ReportsTo DESC;
+
+
+--3.2)
+
+SELECT * FROM Suppliers
+SELECT * FROM [Order Details]
+
+SELECT SupplierID, CompanyName, ContactName FROM Suppliers;
+
+SELECT s.SupplierID, s.CompanyName,
+FORMAT( SUM (od.UnitPrice * od.Quantity * (1 - od.Discount)), 'N' , 'en-uk' ) AS 'Total Sales'
+FROM (([Order Details] AS od
+INNER JOIN Products AS p ON od.ProductID = p.ProductID)
+INNER JOIN Suppliers AS s ON s.SupplierID = p.SupplierID)
+GROUP BY s.SupplierID, s.CompanyName
+HAVING SUM ((od.UnitPrice * od.Quantity * (1 - od.Discount))) > 10000 ;
+
+
+
+--3.3)
+
+SELECT * FROM Orders;
+SELECT * FROM [Order Details]
+
+SELECT TOP 10 o.CustomerID AS 'Customer ID' , c.CompanyName AS 'Company Name' ,
+ROUND(SUM(od.UnitPrice * od.Quantity * ( 1 - od.Discount)),2)  AS 'Total Value' ,
+YEAR (ShippedDate) AS 'Current Year'
+FROM ((Orders AS o
+INNER JOIN [Order Details] AS od ON o.OrderID = od.OrderID)
+INNER JOIN Customers AS c ON c.CustomerID = o.CustomerID)
+GROUP BY o.CustomerID, c.CompanyName, YEAR (ShippedDate)
+HAVING YEAR (ShippedDate) = (SELECT YEAR ( MAX (ShippedDate)) FROM Orders)
+ORDER BY [Total Value] DESC;
+
+--3.4
+
+SELECT MONTH (ShippedDate) AS 'Month' ,
+AVG( DATEDIFF (DD,OrderDate,ShippedDate)) AS 'Average Ship Time (Days)'
+FROM Orders
+GROUP BY MONTH (ShippedDate)
+HAVING AVG( DATEDIFF (DD,OrderDate,ShippedDate)) IS NOT NULL
+ORDER BY [Month];
